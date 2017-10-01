@@ -15,6 +15,9 @@
 #define STRING_BUFFER 1e6
 #define SAMPLE_COLUMN_N 2
 #define SAMPLE_PLATFORM_ID "!Sample_platform_id = "
+#define SAMPLE_CHARACTER_MAX  20
+#define SAMPLE_CHARACTERISTICS "!Sample_characteristics"
+#define SAMPLE_TITLE "!Sample_title"
 
 
 struct series {
@@ -195,11 +198,18 @@ void read_samples(FILE *fp, char *StrLine, struct sample * psample) {
     strcpy(psample->id, StrLine + strlen(SAMPLE));
 
     // pass sample annotations
+    psample->characters = (char **)malloc(sizeof(char **) * SAMPLE_CHARACTER_MAX);
+    int sample_character_n = 0;
     while (!feof(fp) && strncmp(StrLine, SAMPLE_TABLE_BEGIN, strlen(SAMPLE_TABLE_BEGIN)) != 0) {
         fgets_trim(StrLine, STRING_BUFFER, fp);  
         if (strncmp(StrLine, SAMPLE_PLATFORM_ID, strlen(SAMPLE_PLATFORM_ID)) == 0) {
             psample->platform_id = (char *)malloc(sizeof(char) * (1 + strlen(StrLine) - strlen(SAMPLE_PLATFORM_ID)));
             strcpy(psample->platform_id, StrLine + strlen(SAMPLE_PLATFORM_ID));
+            sample_character_n++;
+        } else if (strncmp(StrLine, SAMPLE_TITLE, strlen(SAMPLE_TITLE)) == 0) {
+            psample->characters[sample_character_n] = (char *)malloc(sizeof(char) * (1 + strlen(StrLine) - strlen(SAMPLE_PLATFORM_ID)));
+            strcpy(psample->platform_id, StrLine + strlen(SAMPLE_PLATFORM_ID));
+        } else if (strncmp(StrLine, SAMPLE_CHARACTERISTICS, strlen(SAMPLE_CHARACTERISTICS)) == 0) {
         } else {
         }
     }
