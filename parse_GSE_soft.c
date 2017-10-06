@@ -77,7 +77,7 @@ int main(int argc, char ** argv)
     memset(&series, 0, sizeof(series)); // erase data in memory and initialize it.
 
     char * filename;
-    if (strcmp(argv[1], "-lp") == 0) {
+    if (strcmp(argv[1], "-l") == 0) {
         filename = argv[2];
     } else if (strcmp(argv[1], "-p") == 0) {
         filename = argv[3];
