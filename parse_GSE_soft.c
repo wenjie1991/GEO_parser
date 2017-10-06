@@ -93,7 +93,7 @@ int main(int argc, char ** argv)
 
     read_file(fp, &series, pplatforms, psamples);
 
-    if (strcmp(argv[1], "-lp") == 0) {
+    if (strcmp(argv[1], "-l") == 0) {
         list_platform(series, pplatforms, psamples);
     } else {
 
