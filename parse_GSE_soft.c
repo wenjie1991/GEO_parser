@@ -516,7 +516,6 @@ void print_table(char * platform_id, struct platform * pplatforms, struct sample
         if (max_p_n < psamples[s_l[i]].character_n)
             max_p_n = psamples[s_l[i]].character_n;
     }
-    printf("%d\n", max_p_n);
 
     for (int j=0; j<max_p_n; j++) {
         for (int i=0; i<pl->colname_n; i++) {
