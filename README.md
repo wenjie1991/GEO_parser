@@ -8,11 +8,14 @@ parse_GSE_soft -p <platform name or platform index> <GSE soft format file>
 ```
 
 # Options
+```
 -l List the platforms in the GSE dataset.
 -p Setting the platform index or platform id.
 -h Print help message.
+```
 
-#Example: 
+# Example 
+
 ## Compile
 ```
 make
