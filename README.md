@@ -36,5 +36,9 @@ Then generate the formated data table by assigning platform id.
 # parse_GSE_soft -p <platform id> <sotf format GSE file>
 ./parse_GSE_soft -p 0 ./GSE41813_family.soft | head
 ```
-Output refer to output.tsv.
+Or 
+```
+make test
+```
+Output format refer to output.tsv.
 
