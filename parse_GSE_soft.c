@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <errno.h>
 
 #define SERIES "^SERIES = "
 #define PLATFORM "^PLATFORM = "
@@ -41,6 +43,7 @@ struct sample {
     char * id;
     char * platform_id;
     char ** characters;
+    int character_n;
     char ** colnames;
     int row_n;
     struct sample_row * row;
@@ -70,6 +73,8 @@ void order_platform_row_by_id(struct platform_row *, int);
 void order_sample_row_by_id(struct sample_row *, int);
 void print_table(char *, struct platform *, struct sample *, int, int);
 void list_platform(struct series, struct platform *, struct sample *);
+char * check_platform_id(struct platform *, struct series, char *);
+void print_help();
 
 int main(int argc, char ** argv) 
 {
@@ -80,17 +85,27 @@ int main(int argc, char ** argv)
     memset(&series, 0, sizeof(series)); // erase data in memory and initialize it.
 
     char * filename;
+    if (argc == 1) {
+        printf("error!");
+        print_help();
+        return -1;
+    }
     if (strcmp(argv[1], "-l") == 0) {
         filename = argv[2];
     } else if (strcmp(argv[1], "-p") == 0) {
         filename = argv[3];
+    } else if (strcmp(argv[1], "-h") == 0) {
+        print_help();
+        return 0;
     } else {
         printf("error!");
+        print_help();
         return -1;
     }
 
     if((fp = fopen(filename,"r")) == NULL) { 
         printf("error!"); 
+        print_help();
         return -1; 
     } 
 
@@ -106,23 +121,65 @@ int main(int argc, char ** argv)
 
         for (int i=0; i<series.samples; i++){
             order_sample_row_by_id(psamples[i].row, psamples[i].row_n);
-/*            fprintf(stderr, "%s\n", psamples[i].id);*/
             int i_platform;
             for (i_platform=0; i_platform<series.platforms; i_platform++) {
                 if (strcmp(psamples[i].platform_id, pplatforms[i_platform].id) == 0) {
-/*                    fprintf(stderr, "%s\n", pplatforms[i_platform].id);*/
-                    /*                printf("%d\t%d\n", psamples[i].row_n, pplatforms[i_platform].row_n);*/
                     psamples[i].row_order = order_sample(pplatforms[i_platform], psamples[i]);
                     break;
                 }
             }
         }
 
-        char * platform_id = argv[2];
+        char * platform_id = check_platform_id(pplatforms, series, argv[2]);
+        if (strcmp(platform_id, "error") == 0) {
+            printf("error, no such platform!");
+            print_help();
+            return -1;
+        }
         print_table(platform_id, pplatforms, psamples, series.platforms, series.samples);
     }
 
     return 0; 
+}
+
+void print_help() {
+    printf("DESCRIPTION:\n\tThis tool used for parsing the GSE soft format file into TSV file\n");
+    printf("USAGE:\n\tparse_GSE_soft -l <GSE soft format file>\n\tparse_GSE_soft -p <platform name or platform index> <GSE soft format file>\n");
+    printf("Options:");
+    printf("\n\t-l List the platforms in the GSE dataset.");
+    printf("\n\t-p Setting the platform index or platform id.");
+    printf("\n\t-h Print this message.\n");
+}
+
+char * check_platform_id(struct platform * pplatforms, struct series series, char * argv2) {
+    char * platform_id;
+    char ** platform_ids;
+    _Bool isdigits = 1;;
+
+    // if input digits(order of platform) then extract the paltform id
+    for (int i=0; argv2[i] != 0; i++) {
+        if (!isdigit(argv2[i])) {
+            isdigits = 0;
+            break;
+        }
+    }
+
+    if (isdigits) {
+        if (atoi(argv2)+1 > series.platforms) {
+            print_help();
+            exit(-1);
+        }
+        return pplatforms[atoi(argv2)].id;
+    }
+
+    platform_ids = (char **)malloc(series.platforms * sizeof(char *));
+    for (int i=0; i<series.platforms; i++) {
+        if (strcmp(argv2, pplatforms[i].id) == 0) {
+            return argv2;
+        }
+    }
+    print_help();
+    exit(-1);
 }
 
 void list_platform(struct series series, struct platform * pplatforms, struct sample * psamples) {
@@ -205,14 +262,19 @@ void read_samples(FILE *fp, char *StrLine, struct sample * psample) {
         if (strncmp(StrLine, SAMPLE_PLATFORM_ID, strlen(SAMPLE_PLATFORM_ID)) == 0) {
             psample->platform_id = (char *)malloc(sizeof(char) * (1 + strlen(StrLine) - strlen(SAMPLE_PLATFORM_ID)));
             strcpy(psample->platform_id, StrLine + strlen(SAMPLE_PLATFORM_ID));
-            sample_character_n++;
         } else if (strncmp(StrLine, SAMPLE_TITLE, strlen(SAMPLE_TITLE)) == 0) {
-            psample->characters[sample_character_n] = (char *)malloc(sizeof(char) * (1 + strlen(StrLine) - strlen(SAMPLE_PLATFORM_ID)));
-            strcpy(psample->platform_id, StrLine + strlen(SAMPLE_PLATFORM_ID));
+            psample->characters[sample_character_n] = (char *)malloc(sizeof(char) * (1 + strlen(StrLine)));
+            strcpy(psample->characters[sample_character_n], StrLine);
+            sample_character_n++;
         } else if (strncmp(StrLine, SAMPLE_CHARACTERISTICS, strlen(SAMPLE_CHARACTERISTICS)) == 0) {
+            psample->characters[sample_character_n] = (char *)malloc(sizeof(char) * (1 + strlen(StrLine)));
+            strcpy(psample->characters[sample_character_n], StrLine);
+            sample_character_n++;
         } else {
         }
     }
+
+    psample->character_n = sample_character_n;
 
     // read sample table
     int lines_size = 1e8;
@@ -236,7 +298,7 @@ void read_samples(FILE *fp, char *StrLine, struct sample * psample) {
         snprintf(lines[line_i], strlen(StrLine) + 1, "%s", StrLine);
 
         psample->row[line_i - 1].id = strtok(lines[line_i], "\t");
-        psample->row[line_i - 1].data = strtok(NULL, "");
+        psample->row[line_i - 1].data = strtok(NULL, "\t");
 
         line_i++;
         row_n++;
@@ -301,18 +363,18 @@ char ** split_tsv(char * input_str, int n) {
     char * delim = "\t";
 
     int i = 1;
-    result[0] = strtok(str, delim);
+    result[0] = strsep(&str, delim);
     while (i < n - 1) {
-        result[i] = strtok(NULL, delim);
+        result[i] = strsep(&str, delim);
         if (result[i] == NULL) {
             result[i] = "na";
         }
         i++;
     }
-    result[i] = strtok(NULL, "");
-    if (result[i] == NULL) {
-        result[i] = "na";
-    }
+    result[i] = str;
+/*    if (result[i] == NULL) {*/
+/*        result[i] = "na";*/
+/*    }*/
 
     return result;
 }
@@ -342,13 +404,13 @@ int compare_sample_row(struct sample_row *elem1, struct sample_row *elem2)
     if (strlen(elem1->id) > strlen(elem2->id)) {
         return 1;
     } else if (strlen(elem1->id) < strlen(elem2->id)) {
-        return -1;
+        return 0;
     } else {
         if (strcmp(elem1->id, elem2->id) > 0) {
             return 1;
         }
         else if (strcmp(elem1->id, elem2->id) < 0) {
-            return -1;
+            return 0;
         }
         else {
             return 0;
@@ -361,13 +423,13 @@ int compare_platform_row(struct platform_row *elem1, struct platform_row *elem2)
     if (strlen(elem1->id) > strlen(elem2->id)) {
         return 1;
     } else if (strlen(elem1->id) < strlen(elem2->id)) {
-        return -1;
+        return 0;
     } else {
         if (strcmp(elem1->id, elem2->id) > 0) {
             return 1;
         }
         else if (strcmp(elem1->id, elem2->id) < 0) {
-            return -1;
+            return 0;
         }
         else {
             return 0;
@@ -466,12 +528,20 @@ void print_table(char * platform_id, struct platform * pplatforms, struct sample
     }
 
     // print phenotype
-    for (int j=0; j<5; j++) {
-        for (int i=0; i<pl->colname_n; i++) {
+    // get phenotype number
+    int max_p_n = 0;
+    for (int i=0; i<s_n; i++) {
+        if (max_p_n < psamples[s_l[i]].character_n)
+            max_p_n = psamples[s_l[i]].character_n;
+    }
+
+    for (int j=0; j<max_p_n; j++) {
+        for (int i=0; i<(pl->colname_n-1); i++) {
             printf("%s\t", "");
         }
+        printf("phenotype%d\t", j);
         for (int i=0; i<s_n; i++) {
-            printf("%s", psamples[s_l[i]].id);
+            printf("%s", psamples[s_l[i]].characters[j]);
             if (i<s_n-1)
                 printf("\t");
             else 
@@ -504,6 +574,6 @@ void print_table(char * platform_id, struct platform * pplatforms, struct sample
             }
         }
     }
-    }
+ }
 
 
