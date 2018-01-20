@@ -12,12 +12,12 @@
 #define PLATFORM_TABLE_END "!platform_table_end"
 #define SAMPLE_TABLE_BEGIN "!sample_table_begin"
 #define SAMPLE_TABLE_END "!sample_table_end"
-#define PLATFORM_MAX_N 20
+#define PLATFORM_MAX_N 30
 #define SAMPLE_MAX_N 10000
-#define STRING_BUFFER 1e6
+#define STRING_BUFFER 1e7
 #define SAMPLE_COLUMN_N 2
 #define SAMPLE_PLATFORM_ID "!Sample_platform_id = "
-#define SAMPLE_CHARACTER_MAX  20
+#define SAMPLE_CHARACTER_MAX  1000
 #define SAMPLE_CHARACTERISTICS "!Sample_characteristics"
 #define SAMPLE_TITLE "!Sample_title"
 
@@ -270,8 +270,7 @@ void read_samples(FILE *fp, char *StrLine, struct sample * psample) {
             psample->characters[sample_character_n] = (char *)malloc(sizeof(char) * (1 + strlen(StrLine)));
             strcpy(psample->characters[sample_character_n], StrLine);
             sample_character_n++;
-        } else {
-        }
+        } 
     }
 
     psample->character_n = sample_character_n;
@@ -321,7 +320,7 @@ void read_platforms(FILE *fp, char *StrLine, struct platform * pplatform) {
     }
 
     // read platform table
-    int lines_size = 1e8;
+    int lines_size = 1e9;
     char ** lines = (char**)malloc(lines_size * sizeof(char *));
     long line_i = 0;
 
@@ -552,7 +551,6 @@ void print_table(char * platform_id, struct platform * pplatforms, struct sample
 
     // print data
     for (int j=0; j<pl->row_n; j++) {
-        /*    for (int j=0; j<100; j++) {*/
         for (int i=0; i<pl->colname_n; i++) {
             printf("%s\t", pl->row[j].data[i]);
         }
