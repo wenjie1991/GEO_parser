@@ -354,23 +354,38 @@ void read_platforms(FILE *fp, char *StrLine, struct platform * pplatform) {
     pplatform->row_n = row_n;
 }
 
+char *strtok_new(char * string, char const * delimiter){
+   static char *source = NULL;
+   char *p, *riturn = 0;
+   if(string != NULL)         source = string;
+   if(source == NULL)         return NULL;
+
+   if((p = strpbrk (source, delimiter)) != NULL) {
+      *p  = 0;
+      riturn = source;
+      source = ++p;
+   }
+   return riturn;
+}
+
 char ** split_tsv(char * input_str, int n) {
 
+    // strok_new refer to: https://stackoverflow.com/a/26552052
     char ** result = (char **)malloc(sizeof(char *) * n);
-    char * str = (char *) malloc(sizeof(char) * (strlen(input_str) + 1));
+    char * str = (char *) malloc(sizeof(char) * (strlen(input_str) + 3));
     strcpy(str, input_str);
-
     char * delim = "\t";
+    strcat(str, delim);
 
     char *token;
    
     /* get the first token */
-    token = strtok(str, delim);
+    token = strtok_new(str, delim);
     result[0] = token;
    
     /* walk through other tokens */
-    for (int i=0; i<n; i++) {
-        token = strtok(NULL, delim);
+    for (int i=1; i<n; i++) {
+        token = strtok_new(NULL, delim);
         if (token == NULL) 
             result[i] = "na";
         else 
@@ -381,10 +396,10 @@ char ** split_tsv(char * input_str, int n) {
 }
 
 int count_tsv_line_columns(char * input_str) {
-    int n = 1, i;
-    char * tab = "\t";
-    for (i=0; i<strlen(input_str); i++) {
-        if (input_str[i] == tab[0]) {
+    int n = 1;
+    char tab = '\t';
+    for (int i=0; i<strlen(input_str); i++) {
+        if (input_str[i] == tab) {
             n++;
         }
     }
@@ -538,7 +553,7 @@ void print_table(char * platform_id, struct platform * pplatforms, struct sample
     }
 
     for (int j=0; j<max_p_n; j++) {
-        for (int i=0; i<(pl->colname_n-1); i++) {
+        for (int i=0; i<(pl->colname_n - 1); i++) {
             printf("%s\t", "");
         }
         printf("phenotype%d\t", j);
