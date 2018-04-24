@@ -14,7 +14,7 @@
 #define SAMPLE_TABLE_END "!sample_table_end"
 #define PLATFORM_MAX_N 30
 #define SAMPLE_MAX_N 10000
-#define STRING_BUFFER 1e7
+#define STRING_BUFFER 100000000
 #define SAMPLE_COLUMN_N 2
 #define SAMPLE_PLATFORM_ID "!Sample_platform_id = "
 #define SAMPLE_CHARACTER_MAX  1000
@@ -111,6 +111,7 @@ int main(int argc, char ** argv)
 
     read_file(fp, &series, pplatforms, psamples);
 
+    
     if (strcmp(argv[1], "-l") == 0) {
         list_platform(series, pplatforms, psamples);
     } else {
@@ -356,24 +357,25 @@ void read_platforms(FILE *fp, char *StrLine, struct platform * pplatform) {
 char ** split_tsv(char * input_str, int n) {
 
     char ** result = (char **)malloc(sizeof(char *) * n);
-    char * str = (char*)malloc(sizeof(char) * (1 + strlen(input_str)));
+    char * str = (char *) malloc(sizeof(char) * (strlen(input_str) + 1));
     strcpy(str, input_str);
 
     char * delim = "\t";
 
-    int i = 1;
-    result[0] = strsep(&str, delim);
-    while (i < n - 1) {
-        result[i] = strsep(&str, delim);
-        if (result[i] == NULL) {
+    char *token;
+   
+    /* get the first token */
+    token = strtok(str, delim);
+    result[0] = token;
+   
+    /* walk through other tokens */
+    for (int i=0; i<n; i++) {
+        token = strtok(NULL, delim);
+        if (token == NULL) 
             result[i] = "na";
-        }
-        i++;
+        else 
+            result[i] = token;
     }
-    result[i] = str;
-/*    if (result[i] == NULL) {*/
-/*        result[i] = "na";*/
-/*    }*/
 
     return result;
 }
@@ -391,7 +393,8 @@ int count_tsv_line_columns(char * input_str) {
 
 void fgets_trim(char * StrLine, int n, FILE * fp) {
     fgets(StrLine, STRING_BUFFER, fp);  
-    StrLine[strlen(StrLine) - 1] = '\0';
+    if (StrLine[strlen(StrLine) - 1] == '\n')
+        StrLine[strlen(StrLine) - 1] = '\0';
 }
 
 int compareInc(const void *a, const void *b) {  
